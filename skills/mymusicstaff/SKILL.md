@@ -28,6 +28,7 @@ run `scripts/setup.sh` (interactive; it prompts for the password without echo).
 | See logged practice | `mms-practice-list.sh --student sam` |
 | Record practice | `mms-practice-add.sh --student sam --minutes 30 --date 2026-09-06 --notes "scales"` |
 | Remove a wrong entry | `mms-practice-delete.sh --student sam --date 2026-09-06 --notes-match "scales"` |
+| Change an entry's minutes or notes | `mms-practice-edit.sh --student sam --date 2026-09-06 --notes-match "scales" --minutes 40 --append-notes "studio 3"` |
 | Backfill many days at once | `mms-practice-bulk.sh --student sam < plan.tsv` (lines: `date<TAB>minutes<TAB>notes`) |
 | Interactive re-login (visible browser) | `mms-login.sh` |
 
@@ -113,6 +114,7 @@ reCAPTCHA (`LOGIN_NEEDS_HUMAN`).
 | `click` on the Log In / Continue buttons | ASP.NET WebForms submit buttons ignore ref and CSS clicks; nothing happens, no error | Scripts use a DOM `.click()` via `eval` |
 | JS `.click()` on the student dropdown | Angular `mat-select` opens from its `.mat-mdc-select-trigger`, not the host element | `mms_select_student` in `lib.sh` handles it |
 | Clicking a table row's menu without scrolling | Off-screen rows do not receive clicks | Scripts call `scrollIntoView` first |
+| Taking the first menu-trigger button in a row | On rows with long notes that button is the notes cell's "Show More" toggle | Scripts use the button in the last cell |
 | Waiting for `networkidle` after navigation | The SPA renders after network idle | Scripts wait for page text ("Practice log for", "Attendance for", "Schedule") |
 
 ## When the scripts are not enough

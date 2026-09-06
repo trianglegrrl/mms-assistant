@@ -18,7 +18,7 @@ print("""
 (() => {
   const [d, m] = %s;
   const row = Array.from(document.querySelectorAll('tr')).find(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim()); return td[0] === d && (!m || (td[4]||'').includes(m)); });
-  row.scrollIntoView({block:'center'}); row.querySelector('button.mat-mdc-menu-trigger').click(); return 'menu-open';
+  row.scrollIntoView({block:'center'}); Array.from(row.querySelectorAll('td')).pop().querySelector('button').click(); return 'menu-open';
 })()
 """ % json.dumps([os.environ["MMS_DATE"], os.environ["MMS_MATCH"]]))
 PY
