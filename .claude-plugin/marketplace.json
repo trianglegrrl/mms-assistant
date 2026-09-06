@@ -1,0 +1,11 @@
+{
+  "name": "mms-assistant",
+  "owner": { "name": "trianglegrrl" },
+  "plugins": [
+    {
+      "name": "mms-assistant",
+      "source": "./",
+      "description": "MyMusicStaff student-portal skill: upcoming lessons, teacher attendance notes, and practice logging via agent-browser."
+    }
+  ]
+}

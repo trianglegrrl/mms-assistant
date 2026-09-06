@@ -31,8 +31,11 @@ npm i -g agent-browser && agent-browser install
 
 Then install the skill in one of these ways:
 
-- **As a Claude Code plugin:** `claude plugin add trianglegrrl/mms-assistant` (or add this
-  repo as a marketplace and install `mms-assistant`).
+- **As a Claude Code plugin** (inside Claude Code):
+  ```
+  /plugin marketplace add trianglegrrl/mms-assistant
+  /plugin install mms-assistant@mms-assistant
+  ```
 - **With the skills CLI:** `npx skills add trianglegrrl/mms-assistant`
 - **By hand:** copy `skills/mymusicstaff` into `~/.claude/skills/` (all projects) or
   `<project>/.claude/skills/` (one project).

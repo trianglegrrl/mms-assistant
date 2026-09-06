@@ -9,8 +9,7 @@ while [[ $# -gt 0 ]]; do case "$1" in
 [[ -n "$STUDENT" && -n "$DATE" ]] || die "--student and --date are required"
 
 mms_open "$MMS_BASE/practice-log" "Practice log for"
-LABEL="$(mms_student_label "$STUDENT")"
-mms_select_student "$LABEL"
+LABEL="$(mms_select_student "$STUDENT")"
 STATUS=$(MMS_DATE="$DATE" MMS_MATCH="$MATCH" python3 - <<'PY' | mms_eval
 import os, json
 print("""

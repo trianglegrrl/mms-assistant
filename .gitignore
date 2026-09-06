@@ -5,3 +5,5 @@ credentials.env
 config.env
 .omc/
 .DS_Store
+# project-local Claude Code config (skill symlink lives here)
+.claude/

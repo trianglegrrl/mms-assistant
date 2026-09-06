@@ -9,8 +9,7 @@ while [[ $# -gt 0 ]]; do case "$1" in
 [[ -n "$STUDENT" ]] || die "--student is required"
 
 mms_open "$MMS_BASE/practice-log" "Practice log for"
-LABEL="$(mms_student_label "$STUDENT")"
-mms_select_student "$LABEL"
+LABEL="$(mms_select_student "$STUDENT")"
 RESULT=$(mms_eval <<'JS'
 (() => {
   const summary = (Array.from(document.querySelectorAll('h4')).find(h => /logged/.test(h.innerText))||{}).innerText || '';

@@ -44,30 +44,39 @@ MMS_CONFIG="${MMS_CONFIG:-$HOME/.config/mymusicstaff/config.env}"
 # shellcheck disable=SC1090
 [[ -r "$MMS_CONFIG" ]] && source "$MMS_CONFIG"
 
-# Resolve --student to an exact dropdown label: alias first, then case-insensitive
-# substring match against the options actually present on the page.
-mms_student_label() {
-  local query="$1" alias_var
+# Resolve --student to a dropdown label and select it, in one open-match-click pass so the
+# dropdown is never left open (an open mat-select backdrop swallows later clicks).
+# Alias MMS_STUDENT_<QUERY> wins; otherwise case-insensitive substring of the option text.
+# Prints the selected label.
+mms_select_student() {
+  local query="$1" alias_var target=""
   alias_var="MMS_STUDENT_$(echo "$query" | tr '[:lower:]' '[:upper:]' | tr -c 'A-Z0-9\n' '_')"
-  if [[ -n "${!alias_var:-}" ]]; then echo "${!alias_var}"; return 0; fi
-  # Ask the page for its dropdown options, then match in python (no shell quoting games).
-  MMS_Q="$query" python3 - <<'PY2' | ab eval --stdin | MMS_Q="$query" python3 -c '
+  [[ -n "${!alias_var:-}" ]] && target="${!alias_var}"
+  MMS_Q="$query" MMS_T="$target" python3 - <<'PY2' | ab eval --stdin | MMS_Q="$query" python3 -c '
 import json, os, sys
-opts = json.loads(json.loads(sys.stdin.read()))
-q = os.environ["MMS_Q"].lower()
-hits = [o for o in opts if q in o.lower()]
-if len(hits) == 1: print(hits[0]); sys.exit(0)
-msg = "No student matches" if not hits else "Ambiguous student"
-print("ERROR: %s %r. Options: %s" % (msg, os.environ["MMS_Q"], ", ".join(hits or opts)), file=sys.stderr); sys.exit(1)'
-import os
+r = json.loads(json.loads(sys.stdin.read()))
+if r["status"] == "ok": print(r["label"]); sys.exit(0)
+if r["status"] == "no-combo": print("ERROR: No student dropdown on this page", file=sys.stderr); sys.exit(1)
+msg = "No student matches" if r["status"] == "none" else "Ambiguous student"
+print("ERROR: %s %r. Options: %s" % (msg, os.environ["MMS_Q"], ", ".join(r["hits"] or r["options"])), file=sys.stderr); sys.exit(1)'
+import os, json
 print("""(async () => {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const combo = document.querySelector('mat-select'); if (!combo) return JSON.stringify([]);
-  const trig = combo.querySelector('.mat-mdc-select-trigger') || combo; trig.click(); await sleep(600);
-  const opts = Array.from(document.querySelectorAll('[role=option]')).map(o => o.textContent.trim());
-  document.dispatchEvent(new KeyboardEvent('keydown', {key:'Escape', bubbles:true})); await sleep(300);
-  return JSON.stringify(opts);
-})()""")
+  const q = %s.toLowerCase(), target = %s;
+  const combo = document.querySelector('mat-select');
+  if (!combo) return JSON.stringify({status:'no-combo'});
+  const trig = combo.querySelector('.mat-mdc-select-trigger') || combo;
+  trig.click(); await sleep(700);
+  let opts = Array.from(document.querySelectorAll('[role=option]'));
+  if (!opts.length) { combo.focus(); combo.dispatchEvent(new KeyboardEvent('keydown', {key:'Enter', bubbles:true})); await sleep(700); opts = Array.from(document.querySelectorAll('[role=option]')); }
+  const names = opts.map(o => o.textContent.trim());
+  const hits = target ? names.filter(n => n === target) : names.filter(n => n.toLowerCase().includes(q));
+  const close = async () => { const bd = document.querySelector('.cdk-overlay-backdrop'); if (bd) bd.click(); await sleep(400); };
+  if (hits.length !== 1) { await close(); return JSON.stringify({status: hits.length ? 'ambiguous' : 'none', hits, options: names}); }
+  opts[names.indexOf(hits[0])].click(); await sleep(2000);
+  for (let i = 0; i < 10 && document.querySelector('[role=option]'); i++) { await close(); }
+  return JSON.stringify({status:'ok', label: hits[0]});
+})()""" % (json.dumps(os.environ["MMS_Q"]), json.dumps(os.environ["MMS_T"])))
 PY2
 }
 
@@ -148,33 +157,3 @@ mms_open() {
   ab wait 1500 >/dev/null
 }
 
-# Pick a student in the "for:" dropdown (Angular Material combobox) by exact label.
-mms_select_student() {
-  local label="$1"
-  MMS_TARGET="$label" python3 - <<'PY' | ab eval --stdin >/dev/null
-import os, json
-label = json.dumps(os.environ["MMS_TARGET"])
-print(f"""
-(async () => {{
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const target = {label};
-  const combo = document.querySelector('mat-select');
-  if (!combo) return 'no-combo';
-  if ((combo.textContent||'').includes(target)) return 'already';
-  // mat-select opens from its trigger element (or Enter), not from a click on the host.
-  const trig = combo.querySelector('.mat-mdc-select-trigger') || combo;
-  trig.click(); await sleep(700);
-  let opts = Array.from(document.querySelectorAll('[role=option]'));
-  if (!opts.length) {{ combo.focus(); combo.dispatchEvent(new KeyboardEvent('keydown', {{key:'Enter', bubbles:true}})); await sleep(700); opts = Array.from(document.querySelectorAll('[role=option]')); }}
-  const opt = opts.find(o => (o.textContent||'').includes(target));
-  if (!opt) return 'no-option';
-  opt.click(); await sleep(2000);
-  return 'selected';
-}})()
-""")
-PY
-  ab wait 1000 >/dev/null
-  mms_eval <<'EOF2' | grep -q "$label" || die "Could not select student '$label'"
-(() => { const c = document.querySelector('mat-select'); return c ? c.textContent : ''; })()
-EOF2
-}

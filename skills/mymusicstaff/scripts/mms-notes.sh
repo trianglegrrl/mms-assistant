@@ -9,8 +9,7 @@ while [[ $# -gt 0 ]]; do case "$1" in
 [[ -n "$STUDENT" ]] || die "--student is required"
 
 mms_open "$MMS_BASE/attendance-notes" "Attendance for"
-LABEL="$(mms_student_label "$STUDENT")"
-mms_select_student "$LABEL"
+LABEL="$(mms_select_student "$STUDENT")"
 if [[ -n "$RANGE" ]]; then
   ab find role combobox click --name "last" >/dev/null 2>&1 || ab find role combobox click --name "Last" >/dev/null 2>&1 || true
   ab wait 500 >/dev/null
