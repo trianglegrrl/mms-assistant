@@ -168,15 +168,23 @@ mms_table_next_page() { mms_eval <<'JS'
 })()
 JS
 }
-# mms_table_first_page returns to page 1 (no-op if the pager is absent).
-mms_table_first_page() { mms_eval <<'JS' >/dev/null
+# mms_table_first_page returns to page 1: a "first" button if the pager has one, otherwise
+# "previous" until it is disabled. No-op when there is no pager.
+mms_table_first_page() {
+  local i r
+  for i in $(seq 1 60); do
+    r="$(mms_eval <<'JS'
 (() => {
-  const btn = Array.from(document.querySelectorAll('button')).find(b => /first/i.test(b.getAttribute('aria-label')||'') || /first/i.test(b.title||''));
-  if (btn && !btn.disabled) { btn.click(); return 'first'; }
-  return 'none';
+  const find = re => Array.from(document.querySelectorAll('button')).find(b => re.test(b.getAttribute('aria-label')||'') || re.test(b.title||''));
+  const first = find(/first/i); if (first) { if (first.disabled || first.getAttribute('aria-disabled') === 'true') return 'at-first'; first.click(); return 'clicked-first'; }
+  const prev = find(/prev/i); if (!prev || prev.disabled || prev.getAttribute('aria-disabled') === 'true') return 'at-first'; prev.click(); return 'clicked-prev';
 })()
 JS
-  ab wait 1200 >/dev/null
+)"
+    [[ "$r" == "at-first" ]] && return 0
+    ab wait 900 >/dev/null
+    [[ "$r" == "clicked-first" ]] && return 0
+  done
 }
 # Count practice rows matching date [+ duration H:MM] [+ notes substring] on the current page.
 mms_count_rows_here() {
@@ -189,6 +197,7 @@ PY2
 # Leaves the table on the page where the row was found (callers that continue must not assume page 1).
 mms_find_row_paged() {
   local n i
+  mms_table_first_page
   n="$(mms_count_rows_here "$@")"
   for i in $(seq 1 40); do
     [[ "$n" != "0" ]] && break
