@@ -68,7 +68,7 @@ NNNNNN"). Take the newest message only; each code expires 15 minutes after it wa
 and every login attempt sends a new one. Then re-run the original command, for example:
 
 ```
-MMS_OTP=123456 <skill dir>/scripts/mms-notes.sh --student maya
+MMS_OTP=123456 <skill dir>/scripts/mms-notes.sh --student sam
 ```
 
 Two failure cases, both resolved by asking the user for the code from their inbox:

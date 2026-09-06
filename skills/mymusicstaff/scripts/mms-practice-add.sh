@@ -6,7 +6,7 @@ STUDENT=""; MINUTES=""; DATE="$(date +%F)"; NOTES=""
 while [[ $# -gt 0 ]]; do case "$1" in
   --student) need_value "$@"; STUDENT="$2"; shift 2;; --minutes) need_value "$@"; MINUTES="$2"; shift 2;; --date) need_value "$@"; DATE="$2"; shift 2;; --notes) need_value "$@"; NOTES="$2"; shift 2;;
   *) die "Unknown arg $1";; esac; done
-[[ -n "$STUDENT" ]] || die "--student is required (maya or alaina)"
+[[ -n "$STUDENT" ]] || die "--student is required "
 [[ "$MINUTES" =~ ^[0-9]+$ ]] || die "--minutes must be a positive integer"
 MINUTES=$((10#$MINUTES)); [[ $MINUTES -gt 0 ]] || die "--minutes must be a positive integer"
 [[ "$DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || die "--date must be YYYY-MM-DD"
