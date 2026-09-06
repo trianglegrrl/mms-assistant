@@ -28,6 +28,7 @@ run `scripts/setup.sh` (interactive; it prompts for the password without echo).
 | See logged practice | `mms-practice-list.sh --student sam` |
 | Record practice | `mms-practice-add.sh --student sam --minutes 30 --date 2026-09-06 --notes "scales"` |
 | Remove a wrong entry | `mms-practice-delete.sh --student sam --date 2026-09-06 --notes-match "scales"` |
+| Backfill many days at once | `mms-practice-bulk.sh --student sam < plan.tsv` (lines: `date<TAB>minutes<TAB>notes`) |
 | Interactive re-login (visible browser) | `mms-login.sh` |
 
 `--student` is a case-insensitive substring of the name in the portal's dropdown
@@ -95,6 +96,13 @@ reCAPTCHA (`LOGIN_NEEDS_HUMAN`).
   unless they gave all three. It writes to the real account.
 - The script verifies the new row exists and fails loudly if it does not; trust its exit code.
 - Fix mistakes with `mms-practice-delete.sh`, which refuses unless exactly one row matches.
+- For backfills ("catch up", "every day between X and Y"), generate a TSV plan with a small
+  Python snippet, show the user the row count and total minutes, then run
+  `mms-practice-bulk.sh`. It opens the page once, skips dates that already have a row,
+  verifies each save, and prints ADDED / SKIP / FAIL per date. Runs take about 8 seconds
+  per row, so run it in the background for more than ~20 rows.
+- The practice table shows 25 rows per page. To verify a backfill, use
+  `mms-practice-list.sh --all --json`, which pages through the whole table.
 
 ## Common mistakes
 
