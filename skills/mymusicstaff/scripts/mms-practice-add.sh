@@ -30,7 +30,6 @@ done
 ab find role button click --name "Save" >/dev/null
 ab wait 2500 >/dev/null
 
-FOUND=$(MMS_DATE="$DATE" MMS_DUR="$EXPECT_DUR" python3 -c 'import os,json;print(json.dumps([os.environ["MMS_DATE"],os.environ["MMS_DUR"]]))' | {
-  read -r pair; printf '(() => { const [d,dur] = %s; return String(Array.from(document.querySelectorAll("tr")).some(r => { const td = Array.from(r.querySelectorAll("td")).map(t => t.innerText.trim()); return td[0]===d && td[2]===dur; })); })()' "$pair" | mms_eval; })
-[[ "$FOUND" == "True" || "$FOUND" == "true" ]] || die "Saved, but could not find a row for $DATE / $EXPECT_DUR in the table. Check the page."
+FOUND="$(mms_find_row_paged "$DATE" "$EXPECT_DUR")"
+[[ "$FOUND" != "0" ]] || die "Saved, but could not find a row for $DATE / $EXPECT_DUR anywhere in the table. Check the page."
 echo "Added practice for $LABEL: $DATE, $MINUTES min${NOTES:+, notes: \"$NOTES\"}"

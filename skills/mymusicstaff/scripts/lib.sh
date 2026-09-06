@@ -157,3 +157,44 @@ mms_open() {
   ab wait 1500 >/dev/null
 }
 
+
+# Practice/attendance tables show 25 rows per page. These helpers search across pages.
+# mms_table_next_page prints "more" after clicking the pager's next button, or "end".
+mms_table_next_page() { mms_eval <<'JS'
+(() => {
+  const btn = Array.from(document.querySelectorAll('button')).find(b => /next/i.test(b.getAttribute('aria-label')||'') || /next/i.test(b.title||''));
+  if (!btn || btn.disabled || btn.getAttribute('aria-disabled') === 'true') return 'end';
+  btn.click(); return 'more';
+})()
+JS
+}
+# mms_table_first_page returns to page 1 (no-op if the pager is absent).
+mms_table_first_page() { mms_eval <<'JS' >/dev/null
+(() => {
+  const btn = Array.from(document.querySelectorAll('button')).find(b => /first/i.test(b.getAttribute('aria-label')||'') || /first/i.test(b.title||''));
+  if (btn && !btn.disabled) { btn.click(); return 'first'; }
+  return 'none';
+})()
+JS
+  ab wait 1200 >/dev/null
+}
+# Count practice rows matching date [+ duration H:MM] [+ notes substring] on the current page.
+mms_count_rows_here() {
+  MMS_D="$1" MMS_DUR="${2:-}" MMS_M="${3:-}" python3 - <<'PY2' | mms_eval
+import os, json
+print("(() => { const [d,dur,m] = %s; return String(Array.from(document.querySelectorAll('tr')).filter(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim()); return td[0]===d && (!dur || td[2]===dur) && (!m || (td[4]||'').includes(m)); }).length); })()" % json.dumps([os.environ["MMS_D"], os.environ["MMS_DUR"], os.environ["MMS_M"]]))
+PY2
+}
+# Page forward until a matching row is on screen. Prints the count found on that page (0 if none).
+# Leaves the table on the page where the row was found (callers that continue must not assume page 1).
+mms_find_row_paged() {
+  local n i
+  n="$(mms_count_rows_here "$@")"
+  for i in $(seq 1 40); do
+    [[ "$n" != "0" ]] && break
+    [[ "$(mms_table_next_page)" == "more" ]] || break
+    ab wait 1200 >/dev/null
+    n="$(mms_count_rows_here "$@")"
+  done
+  echo "$n"
+}

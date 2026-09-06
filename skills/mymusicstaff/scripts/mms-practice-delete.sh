@@ -10,29 +10,23 @@ while [[ $# -gt 0 ]]; do case "$1" in
 
 mms_open "$MMS_BASE/practice-log" "Practice log for"
 LABEL="$(mms_select_student "$STUDENT")"
-STATUS=$(MMS_DATE="$DATE" MMS_MATCH="$MATCH" python3 - <<'PY' | mms_eval
+N="$(mms_find_row_paged "$DATE" "" "$MATCH")"
+[[ "$N" == "1" ]] || die "Expected exactly one matching row, found $N (date $DATE${MATCH:+, notes containing \"$MATCH\"})"
+MMS_DATE="$DATE" MMS_MATCH="$MATCH" python3 - <<'PY' | mms_eval >/dev/null
 import os, json
 print("""
 (() => {
   const [d, m] = %s;
-  const rows = Array.from(document.querySelectorAll('tr')).filter(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim()); return td[0] === d && (!m || (td[4]||'').includes(m)); });
-  if (rows.length !== 1) return 'match-count:' + rows.length;
-  const b = rows[0].querySelector('button.mat-mdc-menu-trigger'); rows[0].scrollIntoView({block:'center'}); b.click();
-  return 'menu-open';
+  const row = Array.from(document.querySelectorAll('tr')).find(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim()); return td[0] === d && (!m || (td[4]||'').includes(m)); });
+  row.scrollIntoView({block:'center'}); row.querySelector('button.mat-mdc-menu-trigger').click(); return 'menu-open';
 })()
 """ % json.dumps([os.environ["MMS_DATE"], os.environ["MMS_MATCH"]]))
 PY
-)
-[[ "$STATUS" == "menu-open" ]] || die "Expected exactly one matching row, got: $STATUS"
 ab wait 600 >/dev/null
 ab find role menuitem click --name "Delete" >/dev/null
 ab wait 700 >/dev/null
 ab find role button click --name "Delete" >/dev/null   # confirmation dialog
 ab wait 2000 >/dev/null
-REMAINING=$(MMS_DATE="$DATE" MMS_MATCH="$MATCH" python3 - <<'PY' | mms_eval
-import os, json
-print("(() => { const [d, m] = %s; return String(Array.from(document.querySelectorAll('tr')).filter(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim()); return td[0] === d && (!m || (td[4]||'').includes(m)); }).length); })()" % json.dumps([os.environ["MMS_DATE"], os.environ["MMS_MATCH"]]))
-PY
-)
+REMAINING="$(mms_count_rows_here "$DATE" "" "$MATCH")"
 [[ "$REMAINING" == "0" ]] || die "Delete was submitted but a matching row is still present. Check the page."
 echo "Deleted practice row for $LABEL on $DATE${MATCH:+ (notes containing \"$MATCH\")}"

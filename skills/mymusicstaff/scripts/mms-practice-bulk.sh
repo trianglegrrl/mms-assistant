@@ -23,11 +23,6 @@ existing_dates() { mms_eval <<'JS'
 (() => JSON.stringify(Array.from(document.querySelectorAll('tr')).filter(r => r.querySelector('a.mat-mdc-menu-trigger')).map(r => r.querySelector('td').innerText.trim())))()
 JS
 }
-row_exists() {  # date minutes-as-H:MM
-  MMS_D="$1" MMS_DUR="$2" python3 -c 'import os,json;print(json.dumps([os.environ["MMS_D"],os.environ["MMS_DUR"]]))' | {
-    read -r pair; printf '(() => { const [d,dur] = %s; return String(Array.from(document.querySelectorAll("tr")).some(r => { const td = Array.from(r.querySelectorAll("td")).map(t => t.innerText.trim()); return td[0]===d && td[2]===dur; })); })()' "$pair" | mms_eval; }
-}
-
 added=0; skipped=0; failed=0
 EXISTING="$(existing_dates)"
 while IFS=$'\t' read -r d m notes; do
@@ -44,7 +39,7 @@ while IFS=$'\t' read -r d m notes; do
   [[ -n "${notes:-}" ]] && ab fill ".cdk-overlay-pane textarea" "$notes" >/dev/null
   ab find role button click --name "Save" >/dev/null
   ab wait 2000 >/dev/null
-  if [[ "$(row_exists "$d" "$dur")" =~ ^[Tt]rue$ ]]; then echo "ADDED $d $dur"; added=$((added+1)); EXISTING="$EXISTING $d";
+  if [[ "$(mms_find_row_paged "$d" "$dur")" != "0" ]]; then echo "ADDED $d $dur"; added=$((added+1)); EXISTING="$EXISTING $d";
   else echo "FAIL  $d $dur (row not found after save)"; failed=$((failed+1)); fi
 done <<< "$PLAN"
 echo "Done for $LABEL: added=$added skipped=$skipped failed=$failed" >&2
