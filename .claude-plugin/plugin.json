@@ -1,0 +1,9 @@
+{
+  "name": "mms-assistant",
+  "description": "MyMusicStaff student-portal skill: upcoming lessons, teacher attendance notes, and practice logging via agent-browser.",
+  "version": "0.1.0",
+  "author": { "name": "trianglegrrl" },
+  "repository": "https://github.com/trianglegrrl/mms-assistant",
+  "license": "MIT",
+  "keywords": ["mymusicstaff", "music-lessons", "agent-browser", "practice-log"]
+}

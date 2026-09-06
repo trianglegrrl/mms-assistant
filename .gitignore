@@ -1,0 +1,7 @@
+# never commit browser auth state or credentials
+auth-state.json
+*.auth-state.json
+credentials.env
+config.env
+.omc/
+.DS_Store
