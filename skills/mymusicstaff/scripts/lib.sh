@@ -143,8 +143,28 @@ mms_submit_otp() {
   die "Verification code was not accepted (still on login page)."
 }
 
-# Open a portal URL, logging in first if the session has expired.
+# One browser session means one operation at a time. mkdir is atomic on every
+# filesystem, so a lock directory is the portable lock (macOS ships no flock).
+MMS_LOCK_DIR="${MMS_LOCK_DIR:-$HOME/.config/mymusicstaff/session.lock}"
+MMS_LOCK_WAIT="${MMS_LOCK_WAIT:-600}"   # seconds to wait for another operation to finish
+mms_lock() {
+  local waited=0 owner
+  while ! mkdir "$MMS_LOCK_DIR" 2>/dev/null; do
+    owner="$(cat "$MMS_LOCK_DIR/pid" 2>/dev/null || true)"
+    if [[ -n "$owner" ]] && ! kill -0 "$owner" 2>/dev/null; then
+      echo "Removing stale MMS lock left by pid $owner" >&2; rm -rf "$MMS_LOCK_DIR"; continue
+    fi
+    [[ $waited -eq 0 ]] && echo "Another MyMusicStaff operation (pid ${owner:-?}) is running; waiting..." >&2
+    (( waited >= MMS_LOCK_WAIT )) && die "Gave up waiting ${MMS_LOCK_WAIT}s for the MMS session lock ($MMS_LOCK_DIR)"
+    sleep 2; waited=$((waited+2))
+  done
+  echo $$ > "$MMS_LOCK_DIR/pid"
+  trap 'rm -rf "$MMS_LOCK_DIR"' EXIT
+}
+
+# Open a portal URL, logging in first if the session has expired. Takes the session lock.
 mms_open() {
+  mms_lock
   local url="$1" marker="${2:-}"
   ab open "$url" >/dev/null
   ab wait --load networkidle >/dev/null 2>&1 || true

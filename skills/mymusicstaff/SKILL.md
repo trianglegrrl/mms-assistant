@@ -117,6 +117,12 @@ reCAPTCHA (`LOGIN_NEEDS_HUMAN`).
 | Taking the first menu-trigger button in a row | On rows with long notes that button is the notes cell's "Show More" toggle | Scripts use the button in the last cell |
 | Waiting for `networkidle` after navigation | The SPA renders after network idle | Scripts wait for page text ("Practice log for", "Attendance for", "Schedule") |
 
+## Concurrency
+
+Every script takes a lock on the one browser session and waits (up to 10 minutes)
+if another script holds it, so parallel subagents are safe but effectively serial.
+Do not run two MMS scripts in parallel expecting speed; batch with the bulk script instead.
+
 ## When the scripts are not enough
 
 For anything outside the tasks above (invoices, repertoire, booking, messages), load
