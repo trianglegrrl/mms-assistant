@@ -16,7 +16,8 @@ extract_rows() { mms_eval <<'JS'
   const summary = (Array.from(document.querySelectorAll('h4')).find(h => /logged/.test(h.innerText))||{}).innerText || '';
   const rows = Array.from(document.querySelectorAll('tr')).filter(r => r.querySelector('a.mat-mdc-menu-trigger'));
   const sessions = rows.map(r => { const td = Array.from(r.querySelectorAll('td')).map(t => t.innerText.trim());
-    return {date: td[0], day: td[1], duration: td[2], attachments: td[3], notes: td[4]}; });
+    const notes = (td[4]||'').replace(/\s*Show More\s*$/, ' …');   // portal truncates long notes in the table
+    return {date: td[0], day: td[1], duration: td[2], attachments: td[3], notes}; });
   return JSON.stringify({summary, sessions});
 })()
 JS
@@ -43,5 +44,5 @@ if [[ $ALL -eq 1 ]]; then
 fi
 if [[ $JSON -eq 1 ]]; then echo "$RESULT" | jq ".sessions |= .[:$LIMIT]"; else
   echo "$LABEL: $(echo "$RESULT" | jq -r .summary)"
-  echo "$RESULT" | jq -r ".sessions[:$LIMIT][] | \"\(.date) \(.day[0:3])  \(.duration)  \(if .notes == \"-\" then \"\" else .notes end)\""
+  echo "$RESULT" | jq -r ".sessions[:$LIMIT][] | \"\(.date) \(.day[0:3])  \(.duration)  \(if .notes == \"-\" then \"\" else (.notes | gsub(\"\\n+\"; \" / \")) end)\""
 fi
