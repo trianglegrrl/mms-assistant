@@ -9,7 +9,8 @@ MMS_BASE="https://app.mymusicstaff.com/Student/v3/en"
 MMS_LOGIN_MARKER="#MainContent_contentBody_textboxEmail"
 MMS_OTP_MARKER="#MainContent_contentBody_bOtpContinue"
 
-ab() { agent-browser --session "$MMS_SESSION" --session-name "$MMS_SESSION" "$@"; }
+# Newer agent-browser versions log "[agent-browser] restore: loaded" on every call; drop that noise.
+ab() { agent-browser --session "$MMS_SESSION" --session-name "$MMS_SESSION" "$@" 2> >(grep -v '^\[agent-browser\] ' >&2); }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
