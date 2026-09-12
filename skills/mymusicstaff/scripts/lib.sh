@@ -10,7 +10,15 @@ MMS_LOGIN_MARKER="#MainContent_contentBody_textboxEmail"
 MMS_OTP_MARKER="#MainContent_contentBody_bOtpContinue"
 
 # Newer agent-browser versions log "[agent-browser] restore: loaded" on every call; drop that noise.
-ab() { agent-browser --session "$MMS_SESSION" --session-name "$MMS_SESSION" "$@" 2> >(grep -v '^\[agent-browser\] ' >&2); }
+# stderr goes through a temp file, not a process substitution: the browser daemon is spawned by
+# the first call and inherits its fds, and a daemon holding a pipe open hangs the caller forever.
+ab() {
+  local err rc; err="$(mktemp)"
+  agent-browser --session "$MMS_SESSION" --session-name "$MMS_SESSION" "$@" 2>"$err"; rc=$?
+  grep -v '^\[agent-browser\] ' "$err" >&2 || true; rm -f "$err"; return $rc
+}
+# Make sure the daemon exists before any call whose output we capture, so it inherits only /dev/null.
+mms_daemon_up() { ab get url >/dev/null 2>&1 </dev/null || true; }
 
 die() { echo "ERROR: $*" >&2; exit 1; }
 
@@ -166,6 +174,7 @@ mms_lock() {
 # Open a portal URL, logging in first if the session has expired. Takes the session lock.
 mms_open() {
   mms_lock
+  mms_daemon_up
   local url="$1" marker="${2:-}"
   ab open "$url" >/dev/null
   ab wait --load networkidle >/dev/null 2>&1 || true
