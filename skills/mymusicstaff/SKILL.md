@@ -96,7 +96,14 @@ reCAPTCHA (`LOGIN_NEEDS_HUMAN`).
 - Confirm student, minutes, and date with the user before running `mms-practice-add.sh`
   unless they gave all three. It writes to the real account.
 - The script verifies the new row exists and fails loudly if it does not; trust its exit code.
-- Fix mistakes with `mms-practice-delete.sh`, which refuses unless exactly one row matches.
+- **Dates before the student's start date are refused silently by the portal**: the modal swaps the
+  date for today, and before this was caught a "failed" add left a stray row dated today. Add and bulk
+  now read the date back before Save and stop with `DATE_REJECTED` (nothing saved). Do not retry those
+  dates; the teacher has to move the start date. If any add ever reports "row not found after save",
+  list today's rows and look for a stray before doing anything else.
+- Fix mistakes with `mms-practice-delete.sh`, which refuses unless exactly one row matches. Narrow with
+  `--minutes N` and `--notes-match`; for true duplicates (same date, length, and notes) pass
+  `--identical` to remove one at a time. Confirm with the user before deleting.
 - For backfills ("catch up", "every day between X and Y"), generate a TSV plan with a small
   Python snippet, show the user the row count and total minutes, then run
   `mms-practice-bulk.sh`. It opens the page once, skips dates that already have a row,

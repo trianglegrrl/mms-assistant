@@ -27,6 +27,11 @@ for attempt in 1 2 3; do
   ab wait 1000 >/dev/null
 done
 [[ -n "$NOTES" ]] && ab fill ".cdk-overlay-pane textarea" "$NOTES" >/dev/null
+GOT_DATE="$(mms_modal_date_value)"
+if [[ "$GOT_DATE" != "$DATE" ]]; then
+  ab find role button click --name "Cancel" >/dev/null 2>&1 || true
+  die "DATE_REJECTED: the portal changed the date $DATE to '$GOT_DATE' (dates before the student's start date are refused). Nothing was saved."
+fi
 ab find role button click --name "Save" >/dev/null
 ab wait 2500 >/dev/null
 

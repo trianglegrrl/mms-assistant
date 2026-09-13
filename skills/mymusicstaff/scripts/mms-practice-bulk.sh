@@ -37,6 +37,8 @@ while IFS=$'\t' read -r d m notes; do
   ok=0; for attempt in 1 2 3; do ab fill ".cdk-overlay-pane input.mat-mdc-input-element" "$m" >/dev/null 2>&1 && { ok=1; break; }; ab wait 1000 >/dev/null; done
   if [[ $ok -eq 0 ]]; then echo "FAIL  $d (duration field not found)"; failed=$((failed+1)); ab find role button click --name "Cancel" >/dev/null 2>&1 || true; continue; fi
   [[ -n "${notes:-}" ]] && ab fill ".cdk-overlay-pane textarea" "$notes" >/dev/null
+  got="$(mms_modal_date_value)"
+  if [[ "$got" != "$d" ]]; then echo "FAIL  $d (DATE_REJECTED: portal changed it to '$got', likely before the start date; not saved)"; failed=$((failed+1)); ab find role button click --name "Cancel" >/dev/null 2>&1 || true; ab wait 800 >/dev/null; continue; fi
   ab find role button click --name "Save" >/dev/null
   ab wait 2000 >/dev/null
   if [[ "$(mms_find_row_paged "$d" "$dur")" != "0" ]]; then echo "ADDED $d $dur"; added=$((added+1)); EXISTING="$EXISTING $d";

@@ -33,13 +33,17 @@ JS
 }
 RESULT="$(extract_rows)"
 if [[ $ALL -eq 1 ]]; then
-  PAGES="$RESULT"
+  PAGES="$RESULT"; PREV="$RESULT"
   for _ in $(seq 1 40); do
     [[ "$(next_page)" == "more" ]] || break
-    ab wait 1500 >/dev/null
-    PAGES="$(printf '%s\n%s' "$PAGES" "$(extract_rows)")"
+    # Wait for the table to actually change; a stale re-read would duplicate a whole page.
+    # Rows are never de-duplicated individually: the same date, length, and notes twice is real data.
+    CUR="$PREV"
+    for _w in $(seq 1 10); do ab wait 800 >/dev/null; CUR="$(extract_rows)"; [[ "$CUR" != "$PREV" ]] && break; done
+    [[ "$CUR" != "$PREV" ]] || die "Practice table did not change after clicking next; refusing to return a partial or duplicated list"
+    PAGES="$(printf '%s\n%s' "$PAGES" "$CUR")"; PREV="$CUR"
   done
-  RESULT="$(echo "$PAGES" | jq -s '{summary: .[0].summary, sessions: (map(.sessions) | add | unique_by(.date + .duration + .notes) | sort_by(.date) | reverse)}')"
+  RESULT="$(echo "$PAGES" | jq -s '{summary: .[0].summary, sessions: (map(.sessions) | add | sort_by(.date) | reverse)}')"
   LIMIT=100000
 fi
 if [[ $JSON -eq 1 ]]; then echo "$RESULT" | jq ".sessions |= .[:$LIMIT]"; else

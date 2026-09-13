@@ -216,6 +216,12 @@ JS
     [[ "$r" == "clicked-first" ]] && return 0
   done
 }
+# Print the Date field's current value in the open practice modal (YYYY-MM-DD). The portal silently
+# swaps a date before the student's start date for today, so read this back before clicking Save.
+mms_modal_date_value() { mms_eval <<'JS'
+(() => { const i = document.querySelector('.cdk-overlay-pane input'); return i ? i.value : ''; })()
+JS
+}
 # Count practice rows matching date [+ duration H:MM] [+ notes substring] on the current page.
 mms_count_rows_here() {
   MMS_D="$1" MMS_DUR="${2:-}" MMS_M="${3:-}" python3 - <<'PY2' | mms_eval
